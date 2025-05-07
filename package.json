@@ -1,0 +1,19 @@
+{
+  "name": "workers-monorepo",
+  "private": true,
+  "workspaces": [
+    "deploy-worker",
+    "durable-objects-cron",
+    "durable-objects-nosql",
+    "edge-api",
+    "hono-mdx"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "format": "turbo run format"
+  },
+  "devDependencies": {}
+}

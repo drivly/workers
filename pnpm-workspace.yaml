@@ -1,0 +1,8 @@
+packages:
+  - 'deploy-worker'
+  - 'durable-objects-cron'
+  - 'durable-objects-nosql'
+  - 'edge-api'
+  - 'hono-mdx'
+  # you can add more packages here using glob patterns
+  # e.g. 'packages/*' or 'apps/*'
