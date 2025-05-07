@@ -1,6 +1,7 @@
 {
   "name": "workers-monorepo",
   "private": true,
+  "packageManager": "pnpm@10.8.1",
   "workspaces": [
     "deploy-worker",
     "durable-objects-cron",
@@ -15,5 +16,7 @@
     "lint": "turbo run lint",
     "format": "turbo run format"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "turbo": "^2.5.3"
+  }
 }
