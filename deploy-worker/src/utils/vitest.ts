@@ -5,6 +5,21 @@ import { tmpdir } from 'os'
 import { randomUUID } from 'crypto'
 import { execSync } from 'child_process'
 
+// Define interfaces for Vitest JSON output structure
+interface VitestAssertionResult {
+  status: string; 
+  fullName: string;
+  failureMessages: string[];
+}
+
+interface VitestTestResult {
+  assertionResults: VitestAssertionResult[];
+}
+
+interface VitestOutput {
+  testResults: VitestTestResult[];
+}
+
 /**
  * Runs tests with Vitest in a separate process
  * @param code Code to test
@@ -81,14 +96,14 @@ export async function runTests(code: string, tests: string, options: VitestOptio
       if (error instanceof Error && 'stdout' in error && typeof error.stdout?.toString === 'function') {
         const output = error.stdout.toString()
         try {
-          const result = JSON.parse(output)
-          const errors = result.testResults.flatMap((testResult: any) =>
+          const result = JSON.parse(output) as VitestOutput;
+          const errors = result.testResults.flatMap((testResult: VitestTestResult) =>
             testResult.assertionResults
-              .filter((assertion: any) => assertion.status === 'failed')
-              .map((assertion: any) => `${assertion.fullName}: ${assertion.failureMessages.join('\n')}`),
+              .filter((assertion: VitestAssertionResult) => assertion.status === 'failed')
+              .map((assertion: VitestAssertionResult) => `${assertion.fullName}: ${assertion.failureMessages.join('\n')}`),
           )
           return errors
-        } catch (_parseError) {
+        } catch (_unusedParseError) { 
           return [`Failed to parse test results: ${output}`]
         }
       }

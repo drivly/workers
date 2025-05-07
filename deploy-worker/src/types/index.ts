@@ -166,7 +166,7 @@ export type TypeScriptOptions = {
   /**
    * TypeScript compiler options
    */
-  compilerOptions?: Record<string, any>
+  compilerOptions?: Record<string, unknown>
 }
 
 /**
@@ -181,7 +181,7 @@ export type ESLintOptions = {
   /**
    * ESLint configuration
    */
-  config?: Record<string, any>
+  config?: Record<string, unknown>
 }
 
 /**
@@ -196,7 +196,7 @@ export type VitestOptions = {
   /**
    * Vitest configuration
    */
-  config?: Record<string, any>
+  config?: Record<string, unknown>
 }
 
 /**
@@ -206,7 +206,7 @@ export type ESBuildOptions = {
   /**
    * ESBuild configuration
    */
-  config?: Record<string, any>
+  config?: Record<string, unknown>
 }
 
 /**

@@ -5,6 +5,18 @@ import { execSync } from 'child_process'
 import { tmpdir } from 'os'
 import { randomUUID } from 'crypto'
 
+// Define interfaces for ESLint JSON output structure
+interface ESLintMessage {
+  line: number;
+  column: number;
+  message: string;
+}
+
+interface ESLintResult {
+  filePath: string;
+  messages: ESLintMessage[];
+}
+
 /**
  * Validates code with ESLint
  * @param code Code to validate
@@ -65,16 +77,16 @@ export async function validateESLint(code: string, options: ESLintOptions = {}):
       })
 
       // Parse the JSON output
-      const results = JSON.parse(output)
+      const results = JSON.parse(output) as ESLintResult[];
 
-      return results.flatMap((result: any) => result.messages.map((message: any) => `${result.filePath} (${message.line},${message.column}): ${message.message}`))
+      return results.flatMap((result: ESLintResult) => result.messages.map((message: ESLintMessage) => `${result.filePath} (${message.line},${message.column}): ${message.message}`))
     } catch (execError) {
       if (execError instanceof Error && 'stdout' in execError && typeof execError.stdout === 'string') {
         try {
           // Try to parse the JSON output even if the command failed
-          const results = JSON.parse(execError.stdout)
+          const results = JSON.parse(execError.stdout) as ESLintResult[];
 
-          return results.flatMap((result: any) => result.messages.map((message: any) => `${result.filePath} (${message.line},${message.column}): ${message.message}`))
+          return results.flatMap((result: ESLintResult) => result.messages.map((message: ESLintMessage) => `${result.filePath} (${message.line},${message.column}): ${message.message}`))
         } catch (_parseError) {
           return [`ESLint error: ${execError.message}`]
         }

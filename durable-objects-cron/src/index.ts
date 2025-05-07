@@ -1,6 +1,6 @@
 import { parseCronExpression } from 'cron-schedule'
 import type { DurableObjectState, DurableObjectStorage } from '@cloudflare/workers-types'
-import { CronSchedule, ScheduleOptions, ScheduleResult, ScheduledTask, TaskHandler, CronDurableObjectOptions } from './types'
+import { ScheduleOptions, ScheduleResult, ScheduledTask, TaskHandler, CronDurableObjectOptions } from './types'
 
 export * from './types'
 
@@ -15,12 +15,12 @@ function getNextCronTime(cron: string): number {
 /**
  * CronDurableObject class for scheduling and executing tasks using Durable Objects alarms
  */
-export class CronDurableObject {
+export class CronDurableObject<T = unknown> {
   private storage: DurableObjectStorage
-  private defaultHandler?: TaskHandler
-  private handlers: Record<string, TaskHandler> = {}
+  private defaultHandler?: TaskHandler<T>
+  private handlers: Record<string, TaskHandler<T>> = {}
 
-  constructor(state: DurableObjectState, options: CronDurableObjectOptions = {}) {
+  constructor(state: DurableObjectState, options: CronDurableObjectOptions<T> = {}) {
     this.storage = state.storage
     this.defaultHandler = options.defaultHandler
     this.handlers = options.handlers || {}
@@ -39,7 +39,7 @@ export class CronDurableObject {
 
     if (request.method === 'POST') {
       if (path[0] === 'schedule') {
-        const body = (await request.json()) as { cron: string; options?: ScheduleOptions }
+        const body = (await request.json()) as { cron: string; options?: ScheduleOptions<T> }
         const result = await this.schedule(body.cron, body.options || {})
         return new Response(JSON.stringify(result), {
           headers: { 'Content-Type': 'application/json' },
@@ -81,15 +81,15 @@ export class CronDurableObject {
    */
   async alarm(): Promise<void> {
     const now = Date.now()
-    const tasks = await this.getTasksDueBy(now)
+    const tasksToExecute = await this.getTasksDueBy(now)
 
-    if (tasks.length === 0) {
+    if (tasksToExecute.length === 0) {
       await this.storage.setAlarm(await this.getNextAlarmTime())
       return
     }
 
     await Promise.all(
-      tasks.map(async (task) => {
+      tasksToExecute.map(async (task) => {
         try {
           let handler = this.defaultHandler
           for (const [prefix, prefixHandler] of Object.entries(this.handlers)) {
@@ -122,12 +122,21 @@ export class CronDurableObject {
           await this.storage.put(`error:${task.id}:${Date.now()}`, errorInfo)
 
           try {
-            const currentTask = (await this.storage.get(`task:${task.id}`)) as ScheduledTask | null
+            const currentTask = (await this.storage.get(`task:${task.id}`)) as ScheduledTask<T> | null
             if (currentTask) {
-              currentTask.data = currentTask.data || {}
-              currentTask.data._errors = (currentTask.data._errors || 0) + 1
-              currentTask.data._lastErrorAt = Date.now()
-              currentTask.data._lastError = String(error)
+              let dataPayload: Record<string, unknown>;
+              if (typeof currentTask.data === 'object' && currentTask.data !== null) {
+                dataPayload = { ...(currentTask.data as Record<string, unknown>) };
+              } else {
+                dataPayload = {};
+              }
+
+              const currentErrorCount = typeof dataPayload._errors === 'number' ? dataPayload._errors : 0;
+              dataPayload._errors = currentErrorCount + 1;
+              dataPayload._lastErrorAt = Date.now();
+              dataPayload._lastError = String(error);
+
+              currentTask.data = dataPayload as T;
 
               const nextTime = getNextCronTime(currentTask.schedule.cron)
               currentTask.schedule.time = nextTime
@@ -147,33 +156,28 @@ export class CronDurableObject {
   /**
    * Schedule a task to be executed according to a cron expression
    */
-  async schedule(cron: string, options: ScheduleOptions = {}): Promise<ScheduleResult> {
+  async schedule(cron: string, options: ScheduleOptions<T> = {}): Promise<ScheduleResult> {
     const id = options.id || crypto.randomUUID()
-    const now = Date.now()
-    const nextTime = getNextCronTime(cron)
+    const nextExecutionTime = getNextCronTime(cron)
 
-    const task: ScheduledTask = {
+    const task: ScheduledTask<T> = {
       id,
       schedule: {
         type: 'cron',
-        time: nextTime,
+        time: nextExecutionTime,
         cron,
       },
-      data: options.data || {},
-      createdAt: now,
-      updatedAt: now,
+      data: options.data as T,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
     }
 
     await this.storage.put(`task:${id}`, task)
-
-    const currentAlarm = await this.storage.getAlarm()
-    if (!currentAlarm || nextTime < currentAlarm) {
-      await this.storage.setAlarm(nextTime)
-    }
+    await this.storage.setAlarm(await this.getNextAlarmTime())
 
     return {
       id,
-      nextExecutionTime: nextTime,
+      nextExecutionTime,
     }
   }
 
@@ -181,49 +185,38 @@ export class CronDurableObject {
    * Cancel a scheduled task
    */
   async cancel(id: string): Promise<boolean> {
-    const exists = await this.storage.delete(`task:${id}`)
-
-    if (exists) {
-      await this.storage.setAlarm(await this.getNextAlarmTime())
-    }
-
-    return exists
+    const result = await this.storage.delete(`task:${id}`)
+    await this.storage.setAlarm(await this.getNextAlarmTime())
+    return result
   }
 
   /**
    * Get a scheduled task by ID
    */
-  async getTask(id: string): Promise<ScheduledTask | null> {
-    const task = await this.storage.get(`task:${id}`)
-    return (task as ScheduledTask | null) || null
+  async getTask(id: string): Promise<ScheduledTask<T> | null> {
+    return (await this.storage.get(`task:${id}`)) as ScheduledTask<T> | null
   }
 
   /**
    * List all scheduled tasks
    */
-  async listTasks(): Promise<ScheduledTask[]> {
-    const tasks: ScheduledTask[] = []
-    const taskEntries = await this.storage.list({ prefix: 'task:' })
-
-    for (const [, task] of taskEntries) {
-      tasks.push(task as ScheduledTask)
-    }
-
-    return tasks
+  async listTasks(): Promise<ScheduledTask<T>[]> {
+    const tasksMap = await this.storage.list<ScheduledTask<T>>({ prefix: 'task:' })
+    return Array.from(tasksMap.values())
   }
 
   /**
    * Get tasks that are due by a specific time
    */
-  private async getTasksDueBy(time: number): Promise<ScheduledTask[]> {
-    const tasks = await this.listTasks()
-    return tasks.filter((task) => task.schedule.time <= time)
+  async getTasksDueBy(time: number): Promise<ScheduledTask<T>[]> {
+    const allTasks = await this.listTasks()
+    return allTasks.filter((task) => task.schedule.time <= time)
   }
 
   /**
    * Get the next alarm time based on scheduled tasks
    */
-  private async getNextAlarmTime(): Promise<number> {
+  async getNextAlarmTime(): Promise<number> {
     const tasks = await this.listTasks()
 
     if (tasks.length === 0) {
@@ -237,8 +230,8 @@ export class CronDurableObject {
 /**
  * Create a new CronDurableObject class with the provided options
  */
-export function createCronDurableObject(options: CronDurableObjectOptions = {}): typeof CronDurableObject {
-  return class extends CronDurableObject {
+export function createCronDurableObject<T = unknown>(options: CronDurableObjectOptions<T> = {}): typeof CronDurableObject<T> {
+  return class extends CronDurableObject<T> {
     constructor(state: DurableObjectState) {
       super(state, options)
     }

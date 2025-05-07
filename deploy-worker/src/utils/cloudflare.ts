@@ -32,6 +32,32 @@ export async function deployToCloudflare(code: string, metadata: WorkerMetadata,
   const codeBlob = new Blob([code], { type: 'application/javascript' })
   formData.append('worker.js', codeBlob, 'worker.js')
 
+  // Define a type for the Cloudflare API error details
+  interface CloudflareErrorDetail {
+    code: number;
+    message: string;
+    // Add other properties if known, e.g., path?: string[]
+  }
+
+  // Define a type for the Cloudflare API success response (result part)
+  interface CloudflareSuccessResult {
+    subdomain: string;
+    // Add other properties if known from the success response
+  }
+
+  // Define a type for the top-level Cloudflare API success response
+  interface CloudflareSuccessResponse {
+    result: CloudflareSuccessResult;
+    // Add other top-level properties from the success response if any
+  }
+
+  // Define a type for the Cloudflare API error response
+  interface CloudflareErrorResponse {
+    errors?: CloudflareErrorDetail[];
+    message?: string;
+    // Add other properties if known from the error response
+  }
+
   const metadataWithProcessedBindings = {
     ...metadata,
     bindings: metadata.bindings?.map((binding) => {
@@ -47,7 +73,7 @@ export async function deployToCloudflare(code: string, metadata: WorkerMetadata,
         case 'queue':
           return binding
         default:
-          console.warn(`Unknown binding type: ${(binding as any).type}`)
+          console.warn(`Unknown binding type: ${(binding as { type: string }).type}`)
           return binding
       }
     }),
@@ -72,20 +98,20 @@ export async function deployToCloudflare(code: string, metadata: WorkerMetadata,
       })
 
       if (response.ok) {
-        const result = await response.json()
+        const result = (await response.json()) as CloudflareSuccessResponse;
         return `https://${scriptName}.${result.result.subdomain}.workers.dev`
       }
 
       try {
-        const error = await response.json()
+        const error = (await response.json()) as CloudflareErrorResponse;
         if (error.errors && Array.isArray(error.errors) && error.errors.length > 0) {
-          lastError = new Error(`Cloudflare API error: ${error.errors.map((e: any) => `${e.code}: ${e.message}`).join(', ')}`)
+          lastError = new Error(`Cloudflare API error: ${error.errors.map((e: CloudflareErrorDetail) => `${e.code}: ${e.message}`).join(', ')}`)
         } else if (error.message) {
           lastError = new Error(`Cloudflare API error: ${error.message}`)
         } else {
           lastError = new Error(`Cloudflare API error: ${response.status} - ${response.statusText}`)
         }
-      } catch (parseError) {
+      } catch (_parseError) { // Prefixed unused variable
         lastError = new Error(`Cloudflare API error: ${response.status} - ${response.statusText}. Unable to parse error details.`)
       }
 

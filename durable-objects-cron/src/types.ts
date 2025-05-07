@@ -22,7 +22,7 @@ export interface CronSchedule {
 /**
  * Options for scheduling a task
  */
-export interface ScheduleOptions {
+export interface ScheduleOptions<T = unknown> {
   /**
    * Unique identifier for the scheduled task
    * If not provided, a random UUID will be generated
@@ -32,7 +32,7 @@ export interface ScheduleOptions {
   /**
    * Data to be passed to the task when it executes
    */
-  data?: any
+  data?: T
 }
 
 /**
@@ -53,7 +53,7 @@ export interface ScheduleResult {
 /**
  * Information about a scheduled task
  */
-export interface ScheduledTask {
+export interface ScheduledTask<T = unknown> {
   /**
    * Unique identifier for the scheduled task
    */
@@ -67,7 +67,7 @@ export interface ScheduledTask {
   /**
    * Data to be passed to the task when it executes
    */
-  data: any
+  data: T
 
   /**
    * Timestamp when the task was created
@@ -88,21 +88,19 @@ export interface ScheduledTask {
 /**
  * Handler function for scheduled tasks
  */
-export type TaskHandler = (task: ScheduledTask) => Promise<void> | void
+export type TaskHandler<T = unknown> = (task: ScheduledTask<T>) => void | Promise<void>
 
 /**
  * Options for the CronDurableObject
  */
-export interface CronDurableObjectOptions {
+export interface CronDurableObjectOptions<T = unknown> {
   /**
-   * Default handler for scheduled tasks
-   * If provided, this handler will be called for all tasks that don't have a specific handler
+   * Default handler function for tasks that don't have a specific handler
    */
-  defaultHandler?: TaskHandler
+  defaultHandler?: TaskHandler<T>
 
   /**
-   * Map of task handlers by task ID prefix
-   * Tasks with IDs that start with a key in this map will be handled by the corresponding handler
+   * Record of named handlers for specific tasks
    */
-  handlers?: Record<string, TaskHandler>
+  handlers?: Record<string, TaskHandler<T>>
 }
