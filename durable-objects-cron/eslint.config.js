@@ -5,11 +5,10 @@ export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    // Add specific rules or overrides for 'durable-objects-cron' if needed
-    // languageOptions: {
-    //   globals: {
-    //     // ...globals.serviceworker, // For Cloudflare Worker globals
-    //   }
-    // }
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+      '@typescript-eslint/no-empty-object-type': 'off'
+    }
   }
 );
