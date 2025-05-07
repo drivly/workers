@@ -1,6 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "noEmit": false, // Explicitly allow emitting for builds
     "incremental": false,
     "composite": false
   }

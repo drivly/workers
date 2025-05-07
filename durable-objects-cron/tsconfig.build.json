@@ -1,4 +1,7 @@
 {
   "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false // Explicitly allow emitting for builds
+  },
   "exclude": ["**/*.test.ts", "**/*.spec.ts"]
 }
