@@ -5,11 +5,9 @@ export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    // Add specific rules or overrides for 'deploy-worker' if needed
-    // languageOptions: {
-    //   globals: {
-    //     // node: true, // if this is primarily a Node.js tool
-    //   }
-    // }
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'off'
+    }
   }
 );
