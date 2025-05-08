@@ -11,11 +11,11 @@
   "homepage": "https://drivly.dev",
   "repository": {
     "type": "git",
-    "url": "https://github.com/drivly/ai.git",
-    "directory": "pkgs/deploy-worker"
+    "url": "https://github.com/drivly/workers.git",
+    "directory": "deploy-worker"
   },
   "bugs": {
-    "url": "https://github.com/drivly/ai/issues"
+    "url": "https://github.com/drivly/workers/issues"
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts",
@@ -34,7 +34,7 @@
   "author": "AI Primitives",
   "license": "MIT",
   "engines": {
-    "node": ">=22"
+    "node": ">=20.9.0"
   },
   "dependencies": {
     "esbuild": "^0.25.2",

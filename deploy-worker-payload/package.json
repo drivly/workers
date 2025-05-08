@@ -4,6 +4,14 @@
   "description": "A blank template to get started with Payload 3.0",
   "license": "MIT",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/drivly/workers.git",
+    "directory": "deploy-worker-payload"
+  },
+  "bugs": {
+    "url": "https://github.com/drivly/workers/issues"
+  },
   "scripts": {
     "build": "cross-env NODE_OPTIONS=--no-deprecation next build",
     "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",

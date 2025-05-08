@@ -11,11 +11,11 @@
   "homepage": "https://mdx.org.ai",
   "repository": {
     "type": "git",
-    "url": "https://github.com/drivly/ai.git",
-    "directory": "pkgs/durable-objects-nosql"
+    "url": "https://github.com/drivly/workers.git",
+    "directory": "durable-objects-nosql"
   },
   "bugs": {
-    "url": "https://github.com/drivly/ai/issues"
+    "url": "https://github.com/drivly/workers/issues"
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --tsconfig tsconfig.build.json",
@@ -35,7 +35,7 @@
   "author": "AI Primitives",
   "license": "MIT",
   "engines": {
-    "node": ">=22"
+    "node": ">=20.9.0"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.8.22",
