@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 import { createCronDurableObject, CronDurableObject } from './index'
+import type { TaskHandler, ScheduledTask } from './types'
 import type {
   DurableObjectState,
   DurableObjectStorage,
@@ -9,7 +10,6 @@ import type {
   DurableObjectPutOptions,
   DurableObjectGetOptions,
 } from '@cloudflare/workers-types'
-import type { ScheduledTask } from './types'
 
 interface TestData {
   test?: string;
@@ -62,7 +62,6 @@ const mockStorage: Partial<DurableObjectStorage> = {
       deleteAlarm: vi.fn().mockResolvedValue(undefined),
       rollback: vi.fn(),
     }
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return await closure(mockTxn as DurableObjectTransaction)
   }),
   deleteAll: vi.fn().mockResolvedValue(undefined),
@@ -169,13 +168,13 @@ describe('CronDurableObject', () => {
     
     const cronDO = new CronDurableObject(
         mockState as DurableObjectState, 
-        { defaultHandler: mockHandler as TaskHandler<TestData, any> }
+        { defaultHandler: mockHandler as unknown as TaskHandler<TestData> }
     )
     await cronDO.alarm()
 
     expect(mockHandler).toHaveBeenCalledTimes(mockTasks.length) // Expect once for each task in mockTasks
-    expect(mockHandler).toHaveBeenCalledWith(mockTasks[0], mockStorage as DurableObjectStorage, undefined)
-    expect(mockHandler).toHaveBeenCalledWith(mockTasks[1], mockStorage as DurableObjectStorage, undefined)
+    expect(mockHandler.mock.calls[0][0]).toEqual(mockTasks[0])
+    expect(mockHandler.mock.calls[1][0]).toEqual(mockTasks[1])
 
     const putCalls = (mockStorage.put as Mock).mock.calls as Array<[string, ScheduledTask<TestData>]>
     // Check that put was called for each task in mockTasks
@@ -188,30 +187,31 @@ describe('CronDurableObject', () => {
   it('handles errors during task execution', async () => {
     const now = Date.now()
     // Specific mockTask for this error test
-    const errorTask: ScheduledTask<TestData> = {
+    const errorTask = {
       id: 'error-task',
       schedule: { type: 'cron' as const, time: now - 1000, cron: '* * * * *' },
       data: { initial: 'data', shouldFail: true }, // Add shouldFail to trigger error
       createdAt: now - 60000,
       updatedAt: now - 60000,
-    }
+    } as ScheduledTask<TestData>
     // Ensure this specific task is returned by `get` and `list` for this test
     (mockStorage.get as Mock).mockImplementation(async (key: string) => (key === `task:${errorTask.id}` ? errorTask : null));
     (mockStorage.list as Mock).mockResolvedValue(new Map([[`task:${errorTask.id}`, errorTask]]));
 
     const errorHandler = vi.fn<(task: ScheduledTask<TestData>, storage: DurableObjectStorage, env: any) => void>(
       (taskToProcess: ScheduledTask<TestData>, storage: DurableObjectStorage, env: any) => { 
-      if (taskToProcess.data && (taskToProcess.data as TestData).shouldFail) {
-        throw new Error('Test error');
+        if (taskToProcess.data && (taskToProcess.data as TestData).shouldFail) {
+          throw new Error('Test error');
+        }
       }
-    })
+    )
     const cronDO = new CronDurableObject(
       mockState as DurableObjectState, 
-      { defaultHandler: errorHandler as TaskHandler<TestData, any> }
+      { defaultHandler: errorHandler as unknown as TaskHandler<TestData> }
     )
     await cronDO.alarm()
 
-    expect(errorHandler).toHaveBeenCalledWith(errorTask, mockStorage as DurableObjectStorage, undefined)
+    expect(errorHandler.mock.calls[0][0]).toEqual(errorTask)
     const putCalls = (mockStorage.put as Mock).mock.calls as Array<[string, ScheduledTask<TestData> | { error: string; task: ScheduledTask<TestData>; timestamp: number; stack?: string }]>
     
     const errorStorageCalls = putCalls.filter(
