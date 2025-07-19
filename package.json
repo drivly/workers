@@ -8,6 +8,7 @@
     "durable-objects-cron",
     "durable-objects-nosql",
     "edge-api",
+    "github-worker",
     "hono-mdx"
   ],
   "scripts": {

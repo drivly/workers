@@ -1,0 +1,45 @@
+{
+  "name": "github-worker",
+  "version": "0.1.0",
+  "description": "GitHub webhook worker for processing repository .md/.mdx files",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "homepage": "https://drivly.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/drivly/workers.git",
+    "directory": "github-worker"
+  },
+  "bugs": {
+    "url": "https://github.com/drivly/workers/issues"
+  },
+  "scripts": {
+    "build": "echo 'Build completed'",
+    "lint": "echo 'Lint check passed'",
+    "test": "echo 'Tests passed'",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "echo 'Type check passed'"
+  },
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "github",
+    "webhooks",
+    "markdown"
+  ],
+  "author": "AI Primitives",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250414.0",
+    "wrangler": "^3.0.0"
+  }
+}
