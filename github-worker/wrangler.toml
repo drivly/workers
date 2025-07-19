@@ -1,0 +1,12 @@
+name = "github-worker"
+main = "src/index.ts"
+compatibility_date = "2024-04-01"
+
+[durable_objects]
+bindings = [
+  { name = "DB", class_name = "GitHubDatabase" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["GitHubDatabase"]
